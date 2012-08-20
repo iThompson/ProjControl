@@ -235,14 +235,18 @@
 				>
 			</File>
 		</Filter>
-		<File
-			RelativePath=".\.gitignore"
+		<Filter
+			Name="GitHub files"
 			>
-		</File>
-		<File
-			RelativePath=".\README.md"
-			>
-		</File>
+			<File
+				RelativePath=".\.gitignore"
+				>
+			</File>
+			<File
+				RelativePath=".\README.md"
+				>
+			</File>
+		</Filter>
 		<File
 			RelativePath=".\ReadMe.txt"
 			>
