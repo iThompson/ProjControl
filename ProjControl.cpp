@@ -2,7 +2,9 @@
 //
 
 #include "stdafx.h"
+#include <Strsafe.h>
 #include "ProjControl.h"
+#include "ScreenRender.h"
 
 #define MAX_LOADSTRING 100
 
@@ -10,12 +12,15 @@
 HINSTANCE hInst;								// current instance
 TCHAR szTitle[MAX_LOADSTRING];					// The title bar text
 TCHAR szWindowClass[MAX_LOADSTRING];			// the main window class name
+TCHAR szCurScreenName[CCHDEVICENAME];			// The current name of the screen
 
 // Forward declarations of functions included in this code module:
 ATOM				MyRegisterClass(HINSTANCE hInstance);
 BOOL				InitInstance(HINSTANCE, int);
 LRESULT CALLBACK	WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK	About(HWND, UINT, WPARAM, LPARAM);
+INT_PTR CALLBACK	ScrSelProc(HWND, UINT, WPARAM, LPARAM);
+BOOL CALLBACK		EnumScreens(HMONITOR, HDC, LPRECT, LPARAM);
 
 int APIENTRY _tWinMain(HINSTANCE hInstance,
                      HINSTANCE hPrevInstance,
@@ -32,6 +37,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	// Initialize global strings
 	LoadString(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
 	LoadString(hInstance, IDC_PROJCONTROL, szWindowClass, MAX_LOADSTRING);
+	if(FAILED(StringCchCopy(szCurScreenName, CCHDEVICENAME, _T("\\\\.\\DISPLAY1")))) return -1;
 	MyRegisterClass(hInstance);
 
 	// Perform application initialization:
@@ -151,13 +157,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case IDM_EXIT:
 			DestroyWindow(hWnd);
 			break;
+		case IDM_SCREEN:
+			DialogBox(hInst, MAKEINTRESOURCE(IDD_SELECT_SCREEN), hWnd, ScrSelProc);
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
 		}
 		break;
 	case WM_PAINT:
 		hdc = BeginPaint(hWnd, &ps);
-		// TODO: Add any drawing code here...
+		Screen_Draw(hdc);
 		EndPaint(hWnd, &ps);
 		break;
 	case WM_DESTROY:
@@ -187,4 +195,47 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 	}
 	return (INT_PTR)FALSE;
+}
+
+INT_PTR CALLBACK ScrSelProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	HWND hCombo;
+	int id;
+	UNREFERENCED_PARAMETER(lParam);
+	switch (message)
+	{
+	case WM_INITDIALOG:
+		// Set up the combo box
+		hCombo = GetDlgItem(hDlg, IDC_SCREENS);
+		ComboBox_ResetContent(hCombo); // Just to be sure
+		// Create the default value
+		ComboBox_AddString(hCombo, TEXT("(none)"));
+		// Enumerate Monitors
+		EnumDisplayMonitors(NULL, NULL, EnumScreens, (LPARAM) hCombo);
+		// Check if the list contains the current monitor
+		if (ComboBox_SelectString(hCombo, -1, szCurScreenName) == CB_ERR)
+			ComboBox_SetCurSel(hCombo, 0);
+		return (INT_PTR)TRUE;
+		break;
+
+	case WM_COMMAND:
+		if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)
+		{
+			EndDialog(hDlg, LOWORD(wParam));
+			return (INT_PTR)TRUE;
+		}
+		break;
+	}
+	return (INT_PTR)FALSE;
+}
+
+BOOL CALLBACK EnumScreens(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData)
+{
+	HWND hCombo = (HWND) dwData;
+	MONITORINFOEX mInfo;
+	mInfo.cbSize = sizeof(MONITORINFOEX);
+	if (GetMonitorInfo(hMonitor, &mInfo)) {
+		ComboBox_AddString(hCombo, mInfo.szDevice);
+	}
+	return TRUE;
 }
