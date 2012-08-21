@@ -1,4 +1,0 @@
-#ifndef _SELECTSCREEN_H
-#define _SELECTSCREEN_H
-
-#endif // _SELECTSCREEN_H
