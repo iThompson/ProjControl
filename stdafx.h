@@ -33,6 +33,7 @@
 #include <malloc.h>
 #include <memory.h>
 #include <tchar.h>
+#include <StrSafe.h>
 
 // Use modern-style controls
 #ifdef _UNICODE

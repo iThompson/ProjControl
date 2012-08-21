@@ -1,7 +1,16 @@
-#ifndef _SCREENRENDER_H
-#define _SCREENRENDER_H
+#pragma once
 
+void Screen_Init();
 void Screen_OpenSettingsBox(HWND parent);
 void Screen_Draw(HDC hdc);
 
-#endif // _SCREENRENDER_H
+typedef struct _SCRCFG {
+	bool bShowCursor;
+	bool bActive;
+	int iUpdateInterval;
+	int x;
+	int y;
+	int w;
+	int h;
+	TCHAR szScreenName[CCHDEVICENAME];
+} SCRCFG;

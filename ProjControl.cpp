@@ -2,14 +2,13 @@
 //
 
 #include "stdafx.h"
-#include <Strsafe.h>
 #include "ProjControl.h"
 #include "ScreenRender.h"
 
 #define MAX_LOADSTRING 100
 
 // Global Variables:
-HINSTANCE hInst;								// current instance
+HINSTANCE g_hInst;								// current instance
 TCHAR szTitle[MAX_LOADSTRING];					// The title bar text
 TCHAR szWindowClass[MAX_LOADSTRING];			// the main window class name
 TCHAR szCurScreenName[CCHDEVICENAME];			// The current name of the screen
@@ -111,7 +110,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
    HWND hWnd;
 
-   hInst = hInstance; // Store instance handle in our global variable
+   g_hInst = hInstance; // Store instance handle in our global variable
 
    hWnd = CreateWindow(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
       CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, NULL, NULL, hInstance, NULL);
@@ -152,13 +151,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		switch (wmId)
 		{
 		case IDM_ABOUT:
-			DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
+			DialogBox(g_hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
 			break;
 		case IDM_EXIT:
 			DestroyWindow(hWnd);
 			break;
 		case IDM_SCREEN:
-			DialogBox(hInst, MAKEINTRESOURCE(IDD_SELECT_SCREEN), hWnd, ScrSelProc);
+			Screen_OpenSettingsBox(hWnd);
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
 		}
@@ -197,45 +196,12 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 	return (INT_PTR)FALSE;
 }
 
-INT_PTR CALLBACK ScrSelProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+void StartTimedRedraw(int millis)
 {
-	HWND hCombo;
-	int id;
-	UNREFERENCED_PARAMETER(lParam);
-	switch (message)
-	{
-	case WM_INITDIALOG:
-		// Set up the combo box
-		hCombo = GetDlgItem(hDlg, IDC_SCREENS);
-		ComboBox_ResetContent(hCombo); // Just to be sure
-		// Create the default value
-		ComboBox_AddString(hCombo, TEXT("(none)"));
-		// Enumerate Monitors
-		EnumDisplayMonitors(NULL, NULL, EnumScreens, (LPARAM) hCombo);
-		// Check if the list contains the current monitor
-		if (ComboBox_SelectString(hCombo, -1, szCurScreenName) == CB_ERR)
-			ComboBox_SetCurSel(hCombo, 0);
-		return (INT_PTR)TRUE;
-		break;
-
-	case WM_COMMAND:
-		if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)
-		{
-			EndDialog(hDlg, LOWORD(wParam));
-			return (INT_PTR)TRUE;
-		}
-		break;
-	}
-	return (INT_PTR)FALSE;
+	// TODO: Setup the redraw timer
 }
 
-BOOL CALLBACK EnumScreens(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData)
+void StopTimedRedraw()
 {
-	HWND hCombo = (HWND) dwData;
-	MONITORINFOEX mInfo;
-	mInfo.cbSize = sizeof(MONITORINFOEX);
-	if (GetMonitorInfo(hMonitor, &mInfo)) {
-		ComboBox_AddString(hCombo, mInfo.szDevice);
-	}
-	return TRUE;
+	// TODO: Stop the redraw timer
 }
