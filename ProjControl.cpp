@@ -211,10 +211,10 @@ void FixAspectRatio(HWND hWnd, int resizeType, LPRECT size, double ratio) {
 	ncHeight = (rcWindow.bottom - rcWindow.top) - (rcClient.bottom);
 
 	// One of these will not be used, but easier to calculate up here
-	newWidth = (int) (((size->bottom - size->top - ncWidth) * ratio) + ncWidth);
-	newHeight = (int) (((size->right - size->left - ncHeight) / ratio) + ncWidth);
+	newWidth = (int) (((size->bottom - size->top - ncHeight) * ratio) + ncWidth);
+	newHeight = (int) (((size->right - size->left - ncWidth) / ratio) + ncHeight);
 
-	curRatio = (double)(size->right - size->left) / (double)(size->bottom - size->top);
+	curRatio = (double)(size->right - size->left - ncWidth) / (double)(size->bottom - size->top - ncHeight);
 	switch (resizeType) {
 		case WMSZ_BOTTOM:
 		case WMSZ_TOP:
