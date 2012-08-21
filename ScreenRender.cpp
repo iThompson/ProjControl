@@ -67,6 +67,7 @@ INT_PTR CALLBACK ScrSelProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPara
 					cfg.bActive = false;
 					cfg.szScreenName[0] = (TCHAR) 0;
 				}
+				ForceResize();
 				ForceRedraw();
 			}
 			// NO BREAK

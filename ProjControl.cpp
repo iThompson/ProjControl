@@ -274,6 +274,14 @@ void ForceRedraw()
 	InvalidateRect(g_hWnd, NULL, TRUE);
 }
 
+void ForceResize()
+{
+	RECT rc;
+	GetWindowRect(g_hWnd, &rc);
+	FixAspectRatio(g_hWnd, WMSZ_BOTTOMRIGHT, &rc, Screen_GetRatio());
+	SetWindowPos(g_hWnd, NULL, 0, 0, rc.right - rc.left, rc.bottom - rc.top, SWP_NOMOVE);
+}
+
 RECT GetClientRect()
 {
 	RECT rc;
