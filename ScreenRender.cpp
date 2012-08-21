@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "ScreenRender.h"
+#include "ProjControl.h"
 #include "resource.h"
 
 HINSTANCE hInst;
@@ -66,6 +67,7 @@ INT_PTR CALLBACK ScrSelProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPara
 					cfg.bActive = false;
 					cfg.szScreenName[0] = (TCHAR) 0;
 				}
+				ForceRedraw();
 			}
 			// NO BREAK
 		case IDCANCEL:
@@ -98,15 +100,25 @@ void Screen_OpenSettingsBox(HWND parent)
 	DialogBox(hInst, MAKEINTRESOURCE(IDD_SELECT_SCREEN), parent, ScrSelProc);
 }
 
+double Screen_GetRatio()
+{
+	if (cfg.bActive) {
+		return (double)cfg.w / (double)cfg.h;
+	} else {
+		return 0.0;
+	}
+}
+
 void Screen_Draw(HDC hdc)
 {
 	TCHAR str[100];
 	size_t len;
+	RECT rcWnd = GetClientRect();
 	HDC hDesktop = GetDC(NULL);
 	if (cfg.bActive) {
-		StringCbPrintf(str, sizeof(str), TEXT("On %s, x = %i, y = %i, w = %i, h = %i"), cfg.szScreenName, cfg.x, cfg.y, cfg.w, cfg.h);
+		StringCbPrintf(str, sizeof(str), TEXT("On %s, x = %i, y = %i, w = %i, h = %i\nClient w = %i, h = %i"), cfg.szScreenName, cfg.x, cfg.y, cfg.w, cfg.h, rcWnd.right, rcWnd.bottom);
 	} else {
-		StringCbCopy(str, sizeof(str), TEXT("No screen selected"));
+		StringCbPrintf(str, sizeof(str), TEXT("No screen selected\nClient w = %i, h = %i"), rcWnd.right, rcWnd.bottom);
 	}
 	StringCchLength(str, 100, &len);
 	TextOut(hdc, 0, 0, str, (int)len);

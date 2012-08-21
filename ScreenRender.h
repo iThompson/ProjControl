@@ -2,6 +2,7 @@
 
 void Screen_Init();
 void Screen_OpenSettingsBox(HWND parent);
+double Screen_GetRatio();
 void Screen_Draw(HDC hdc);
 
 typedef struct _SCRCFG {

@@ -9,17 +9,16 @@
 
 // Global Variables:
 HINSTANCE g_hInst;								// current instance
+HWND	  g_hWnd;								// Primary window
 TCHAR szTitle[MAX_LOADSTRING];					// The title bar text
 TCHAR szWindowClass[MAX_LOADSTRING];			// the main window class name
-TCHAR szCurScreenName[CCHDEVICENAME];			// The current name of the screen
 
 // Forward declarations of functions included in this code module:
 ATOM				MyRegisterClass(HINSTANCE hInstance);
 BOOL				InitInstance(HINSTANCE, int);
 LRESULT CALLBACK	WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK	About(HWND, UINT, WPARAM, LPARAM);
-INT_PTR CALLBACK	ScrSelProc(HWND, UINT, WPARAM, LPARAM);
-BOOL CALLBACK		EnumScreens(HMONITOR, HDC, LPRECT, LPARAM);
+void FixAspectRatio(HWND hWnd, int resizeType, LPRECT size, double ratio);
 
 int APIENTRY _tWinMain(HINSTANCE hInstance,
                      HINSTANCE hPrevInstance,
@@ -36,7 +35,6 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	// Initialize global strings
 	LoadString(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
 	LoadString(hInstance, IDC_PROJCONTROL, szWindowClass, MAX_LOADSTRING);
-	if(FAILED(StringCchCopy(szCurScreenName, CCHDEVICENAME, _T("\\\\.\\DISPLAY1")))) return -1;
 	MyRegisterClass(hInstance);
 
 	// Perform application initialization:
@@ -112,7 +110,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
    g_hInst = hInstance; // Store instance handle in our global variable
 
-   hWnd = CreateWindow(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
+   hWnd = CreateWindow(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW & ~WS_MAXIMIZEBOX,
       CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, NULL, NULL, hInstance, NULL);
 
    if (!hWnd)
@@ -122,6 +120,8 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
    ShowWindow(hWnd, nCmdShow);
    UpdateWindow(hWnd);
+
+   g_hWnd = hWnd;
 
    return TRUE;
 }
@@ -167,6 +167,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		Screen_Draw(hdc);
 		EndPaint(hWnd, &ps);
 		break;
+	case WM_SIZING:
+		FixAspectRatio(hWnd, (int) wParam, (LPRECT) lParam, Screen_GetRatio());
+		break;
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		break;
@@ -196,6 +199,66 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 	return (INT_PTR)FALSE;
 }
 
+void FixAspectRatio(HWND hWnd, int resizeType, LPRECT size, double ratio) {
+	RECT rcClient, rcWindow;
+	int newWidth, newHeight, ncWidth, ncHeight;
+	double curRatio;
+	if (ratio < 0.01) return; // Testing against 0 is generally a bad idea
+	// Get nonclient size
+	GetClientRect(hWnd, &rcClient);
+	GetWindowRect(hWnd, &rcWindow);
+	ncWidth = (rcWindow.right - rcWindow.left) - (rcClient.right);
+	ncHeight = (rcWindow.bottom - rcWindow.top) - (rcClient.bottom);
+
+	// One of these will not be used, but easier to calculate up here
+	newWidth = (int) (((size->bottom - size->top - ncWidth) * ratio) + ncWidth);
+	newHeight = (int) (((size->right - size->left - ncHeight) / ratio) + ncWidth);
+
+	curRatio = (double)(size->right - size->left) / (double)(size->bottom - size->top);
+	switch (resizeType) {
+		case WMSZ_BOTTOM:
+		case WMSZ_TOP:
+			// Right side needs to match
+			size->right = size->left + newWidth;
+			break;
+		case WMSZ_LEFT:
+		case WMSZ_RIGHT:
+			// Bottom side needs to match
+			size->bottom = size->top + newHeight;
+			break;
+		case WMSZ_TOPLEFT:
+			if (curRatio > ratio) {
+				// Width needs to shrink
+				size->left = size->right - newWidth;
+			} else {
+				size->top = size->bottom - newHeight;
+			}
+			break;
+		case WMSZ_TOPRIGHT:
+			if (curRatio > ratio) {
+				size->right = size->left + newWidth;
+			} else {
+				size->top = size->bottom - newHeight;
+			}
+			break;
+		case WMSZ_BOTTOMLEFT:
+			if (curRatio > ratio) {
+				size->left = size->right - newWidth;
+			} else {
+				size->bottom = size->top + newHeight;
+			}
+			break;
+		case WMSZ_BOTTOMRIGHT:
+			if (curRatio > ratio) {
+				size->right = size->left + newWidth;
+			} else {
+				size->bottom = size->top + newHeight;
+			}
+			break;
+	}
+}
+	
+
 void StartTimedRedraw(int millis)
 {
 	// TODO: Setup the redraw timer
@@ -204,4 +267,16 @@ void StartTimedRedraw(int millis)
 void StopTimedRedraw()
 {
 	// TODO: Stop the redraw timer
+}
+
+void ForceRedraw()
+{
+	InvalidateRect(g_hWnd, NULL, TRUE);
+}
+
+RECT GetClientRect()
+{
+	RECT rc;
+	GetClientRect(g_hWnd, &rc);
+	return rc;
 }
