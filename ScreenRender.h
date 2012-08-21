@@ -7,6 +7,7 @@ void Screen_Draw(HDC hdc);
 
 typedef struct _SCRCFG {
 	bool bShowCursor;
+	bool bHighQuality;
 	bool bActive;
 	UINT iUpdateInterval;
 	int x;

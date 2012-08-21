@@ -3,8 +3,28 @@
 #include "ProjControl.h"
 #include "resource.h"
 
+#define SetDlgBtnChecked(dlg, id, val) CheckDlgButton(dlg, id, (val ? BST_CHECKED : BST_UNCHECKED))
+#define GetDlgBtnChecked(dlg, id) (IsDlgButtonChecked(dlg, id) ? TRUE : FALSE)
+
 HINSTANCE hInst;
 SCRCFG cfg;
+
+// Rendering resources
+HDC hBufferDC;
+
+void UpdateBuffer()
+{
+	HBITMAP hBitOld;
+	HBITMAP hBitNew;
+	// Create a Bitmap which is compatible with the desktop
+	HDC hDesktop = GetDC(NULL);
+	hBitNew = CreateCompatibleBitmap(hDesktop, cfg.w, cfg.h);
+	ReleaseDC(NULL, hDesktop);
+
+	// Select the new Bitmap, free the old one
+	hBitOld = (HBITMAP) SelectObject(hBufferDC, hBitNew);
+	DeleteObject(hBitOld);
+}
 
 BOOL CALLBACK EnumScreens(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData)
 {
@@ -46,8 +66,10 @@ INT_PTR CALLBACK ScrSelProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPara
 		if (ComboBox_SelectString(hCombo, -1, cfg.szScreenName) == CB_ERR) 
 			ComboBox_SetCurSel(hCombo, 0);
 
-		// Init the interval edit box
+		// Init the other stuff
 		SetDlgItemInt(hDlg, IDC_TIME, cfg.iUpdateInterval, FALSE);
+		SetDlgBtnChecked(hDlg, IDC_MOUSE, cfg.bShowCursor);
+		SetDlgBtnChecked(hDlg, IDC_DETAIL, cfg.bHighQuality);
 		return (INT_PTR)TRUE;
 		break;
 
@@ -67,6 +89,7 @@ INT_PTR CALLBACK ScrSelProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPara
 					cfg.w = pInfo->rcMonitor.right - cfg.x;
 					cfg.h = pInfo->rcMonitor.bottom - cfg.y;
 					cfg.bActive = true;
+					UpdateBuffer();
 				} else {
 					cfg.bActive = false;
 					cfg.szScreenName[0] = (TCHAR) 0;
@@ -76,6 +99,8 @@ INT_PTR CALLBACK ScrSelProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPara
 			}
 			interval = GetDlgItemInt(hDlg, IDC_TIME, &bSuccess, FALSE);
 			if (bSuccess) cfg.iUpdateInterval = interval;
+			cfg.bShowCursor = GetDlgBtnChecked(hDlg, IDC_MOUSE);
+			cfg.bHighQuality = GetDlgBtnChecked(hDlg, IDC_DETAIL);
 			if (cfg.bActive) {
 				StartTimedRedraw(cfg.iUpdateInterval);
 			} else {
@@ -101,11 +126,19 @@ INT_PTR CALLBACK ScrSelProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPara
 
 void Screen_Init(HINSTANCE hInstance)
 {
+	HDC hDesktop;
 	hInst = hInstance;
 
 	cfg.bActive = false;
+	cfg.bHighQuality = false;
+	cfg.bShowCursor = false;
 	cfg.iUpdateInterval = 100;
 	cfg.szScreenName[0] = (TCHAR) 0; // Default to empty string
+
+	// Initialize the buffer DC
+	hDesktop = GetDC(NULL);
+	hBufferDC = CreateCompatibleDC(hDesktop);
+	ReleaseDC(NULL, hDesktop);
 }
 
 void Screen_OpenSettingsBox(HWND parent)
@@ -126,17 +159,21 @@ void Screen_Draw(HDC hdc)
 {
 //	TCHAR str[100];
 //	size_t len;
-	RECT rcWnd = GetClientRect();
-	HDC hDesktop = GetDC(NULL);
-/*	if (cfg.bActive) {
-		StringCbPrintf(str, sizeof(str), TEXT("On %s, x = %i, y = %i, w = %i, h = %i\nClient w = %i, h = %i"), cfg.szScreenName, cfg.x, cfg.y, cfg.w, cfg.h, rcWnd.right, rcWnd.bottom);
-	} else {
-		StringCbPrintf(str, sizeof(str), TEXT("No screen selected\nClient w = %i, h = %i"), rcWnd.right, rcWnd.bottom);
+	if (cfg.bActive)
+	{
+		RECT rcWnd = GetClientRect();
+		HDC hDesktop = GetDC(NULL);
+		BitBlt(hBufferDC, 0, 0, cfg.w, cfg.h, hDesktop, cfg.x, cfg.y, SRCCOPY);
+		ReleaseDC(NULL, hDesktop);
+/*		if (cfg.bActive) {
+			StringCbPrintf(str, sizeof(str), TEXT("On %s, x = %i, y = %i, w = %i, h = %i\nClient w = %i, h = %i"), cfg.szScreenName, cfg.x, cfg.y, cfg.w, cfg.h, rcWnd.right, rcWnd.bottom);
+		} else {
+			StringCbPrintf(str, sizeof(str), TEXT("No screen selected\nClient w = %i, h = %i"), rcWnd.right, rcWnd.bottom);
+		}
+		StringCchLength(str, 100, &len);
+		TextOut(hdc, 0, 0, str, (int)len); */
+		SetStretchBltMode(hdc, cfg.bHighQuality ? HALFTONE : COLORONCOLOR);
+		StretchBlt(hdc, 0, 0, rcWnd.right, rcWnd.bottom,
+			hBufferDC, 0, 0, cfg.w, cfg.h, SRCCOPY);
 	}
-	StringCchLength(str, 100, &len);
-	TextOut(hdc, 0, 0, str, (int)len); */
-	SetStretchBltMode(hdc, COLORONCOLOR);
-	StretchBlt(hdc, 0, 0, rcWnd.right, rcWnd.bottom,
-		hDesktop, cfg.x, cfg.y, cfg.w, cfg.h, SRCCOPY);
-	ReleaseDC(NULL, hDesktop);
 }
