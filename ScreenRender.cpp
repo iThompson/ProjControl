@@ -30,7 +30,8 @@ INT_PTR CALLBACK ScrSelProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPara
 {
 	HWND hCombo = GetDlgItem(hDlg, IDC_SCREENS);
 	MONITORINFOEX* pInfo;
-	int count, id;
+	int count, id, interval;
+	BOOL bSuccess;
 	UNREFERENCED_PARAMETER(lParam);
 	switch (message)
 	{
@@ -44,6 +45,9 @@ INT_PTR CALLBACK ScrSelProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPara
 		EnumDisplayMonitors(NULL, NULL, EnumScreens, (LPARAM) hCombo);
 		if (ComboBox_SelectString(hCombo, -1, cfg.szScreenName) == CB_ERR) 
 			ComboBox_SetCurSel(hCombo, 0);
+
+		// Init the interval edit box
+		SetDlgItemInt(hDlg, IDC_TIME, cfg.iUpdateInterval, FALSE);
 		return (INT_PTR)TRUE;
 		break;
 
@@ -70,6 +74,13 @@ INT_PTR CALLBACK ScrSelProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPara
 				ForceResize();
 				ForceRedraw();
 			}
+			interval = GetDlgItemInt(hDlg, IDC_TIME, &bSuccess, FALSE);
+			if (bSuccess) cfg.iUpdateInterval = interval;
+			if (cfg.bActive) {
+				StartTimedRedraw(cfg.iUpdateInterval);
+			} else {
+				StopTimedRedraw();
+			}
 			// NO BREAK
 		case IDCANCEL:
 			// Clean up the MonitorInfo structures
@@ -93,6 +104,7 @@ void Screen_Init(HINSTANCE hInstance)
 	hInst = hInstance;
 
 	cfg.bActive = false;
+	cfg.iUpdateInterval = 100;
 	cfg.szScreenName[0] = (TCHAR) 0; // Default to empty string
 }
 
@@ -112,16 +124,19 @@ double Screen_GetRatio()
 
 void Screen_Draw(HDC hdc)
 {
-	TCHAR str[100];
-	size_t len;
+//	TCHAR str[100];
+//	size_t len;
 	RECT rcWnd = GetClientRect();
 	HDC hDesktop = GetDC(NULL);
-	if (cfg.bActive) {
+/*	if (cfg.bActive) {
 		StringCbPrintf(str, sizeof(str), TEXT("On %s, x = %i, y = %i, w = %i, h = %i\nClient w = %i, h = %i"), cfg.szScreenName, cfg.x, cfg.y, cfg.w, cfg.h, rcWnd.right, rcWnd.bottom);
 	} else {
 		StringCbPrintf(str, sizeof(str), TEXT("No screen selected\nClient w = %i, h = %i"), rcWnd.right, rcWnd.bottom);
 	}
 	StringCchLength(str, 100, &len);
-	TextOut(hdc, 0, 0, str, (int)len);
+	TextOut(hdc, 0, 0, str, (int)len); */
+	SetStretchBltMode(hdc, COLORONCOLOR);
+	StretchBlt(hdc, 0, 0, rcWnd.right, rcWnd.bottom,
+		hDesktop, cfg.x, cfg.y, cfg.w, cfg.h, SRCCOPY);
 	ReleaseDC(NULL, hDesktop);
 }

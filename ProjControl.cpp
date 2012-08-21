@@ -6,6 +6,7 @@
 #include "ScreenRender.h"
 
 #define MAX_LOADSTRING 100
+#define REFRESH_TIMER  1
 
 // Global Variables:
 HINSTANCE g_hInst;								// current instance
@@ -36,6 +37,9 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	LoadString(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
 	LoadString(hInstance, IDC_PROJCONTROL, szWindowClass, MAX_LOADSTRING);
 	MyRegisterClass(hInstance);
+
+	// Init the screen mirror controller
+	Screen_Init(hInstance);
 
 	// Perform application initialization:
 	if (!InitInstance (hInstance, nCmdShow))
@@ -162,6 +166,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			return DefWindowProc(hWnd, message, wParam, lParam);
 		}
 		break;
+	case WM_TIMER:
+		switch (wParam)
+		{
+		case REFRESH_TIMER:
+			InvalidateRect(hWnd, NULL, 0);
+			break;
+		}
+		break;
 	case WM_PAINT:
 		hdc = BeginPaint(hWnd, &ps);
 		Screen_Draw(hdc);
@@ -259,14 +271,14 @@ void FixAspectRatio(HWND hWnd, int resizeType, LPRECT size, double ratio) {
 }
 	
 
-void StartTimedRedraw(int millis)
+void StartTimedRedraw(UINT millis)
 {
-	// TODO: Setup the redraw timer
+	SetTimer(g_hWnd, REFRESH_TIMER, millis, NULL);
 }
 
 void StopTimedRedraw()
 {
-	// TODO: Stop the redraw timer
+	KillTimer(g_hWnd, REFRESH_TIMER);
 }
 
 void ForceRedraw()

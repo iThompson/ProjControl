@@ -2,7 +2,7 @@
 
 #include "resource.h"
 
-void StartTimedRedraw(int millis);
+void StartTimedRedraw(UINT millis);
 void StopTimedRedraw();
 void ForceRedraw();
 void ForceResize();
