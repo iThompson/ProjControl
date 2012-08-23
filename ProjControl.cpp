@@ -33,6 +33,9 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	MSG msg;
 	HACCEL hAccelTable;
 
+	// Handle XP stupidity
+	InitCommonControls();
+
 	// Initialize global strings
 	LoadString(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
 	LoadString(hInstance, IDC_PROJCONTROL, szWindowClass, MAX_LOADSTRING);
